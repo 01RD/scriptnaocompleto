@@ -1,0 +1,132 @@
+-- this is an example for the script, use this to make your own! (Might be adding custom Themes)
+local Lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/7yhx/kwargs_Ui_Library/main/source.lua"))()
+
+local UI = Lib:Create{
+   Theme = "Dark", -- or any other theme
+   Size = UDim2.new(0, 555, 0, 400) -- default
+}
+
+local Main = UI:Tab{
+   Name = "inicio"
+}
+
+local Divider = Main:Divider{
+   Name = "inicio shit"
+}
+
+local QuitDivider = Main:Divider{
+   Name = "Sair"
+}
+
+-- Configurações
+local espColor = Color3.new(1, 0, 0) -- Cor do ESP (vermelho)
+local espThickness = 2 -- Espessura da linha do ESP
+local espTransparency = 0.5 -- Transparência do ESP
+local fovRadius = 200 -- Raio do FOV (Field of View)
+local arrowColor = Color3.new(1, 0, 0) -- Cor das setas
+local arrowSize = Vector2.new(10, 20) -- Tamanho das setas
+local showESP = true -- Variável para ativar/desativar o ESP
+
+-- Função para criar o ESP
+local function createESP(player)
+    for _, part in pairs(player.Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            local box = Instance.new("BoxHandleAdornment")
+            box.Size = part.Size
+            box.Adornee = part
+            box.AlwaysOnTop = true
+            box.ZIndex = 10
+            box.Transparency = espTransparency
+            box.Color3 = espColor
+            box.Thickness = espThickness
+            box.Parent = part
+        end
+    end
+end
+
+-- Função para remover o ESP
+local function removeESP(player)
+    for _, part in pairs(player.Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            for _, adornment in pairs(part:GetChildren()) do
+                if adornment:IsA("BoxHandleAdornment") then
+                    adornment:Destroy()
+                end
+            end
+        end
+    end
+end
+
+-- Função para criar setas indicando a direção dos inimigos
+local function createArrow(player)
+    local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+    if rootPart then
+        local screenPoint, onScreen = workspace.CurrentCamera:WorldToViewportPoint(rootPart.Position)
+        if onScreen then
+            -- Se o inimigo estiver na tela, não mostra a seta
+            return
+        else
+            -- Calcula a direção do inimigo
+            local direction = (rootPart.Position - workspace.CurrentCamera.CFrame.Position).Unit
+            local angle = math.atan2(direction.X, direction.Z)
+            local arrow = Drawing.new("Triangle")
+            arrow.Color = arrowColor
+            arrow.Visible = true
+            arrow.PointA = Vector2.new(math.cos(angle) * arrowSize.X, math.sin(angle) * arrowSize.Y)
+            arrow.PointB = Vector2.new(math.cos(angle + 1) * arrowSize.X, math.sin(angle + 1) * arrowSize.Y)
+            arrow.PointC = Vector2.new(math.cos(angle - 1) * arrowSize.X, math.sin(angle - 1) * arrowSize.Y)
+            arrow.Position = workspace.CurrentCamera.ViewportSize / 2
+            arrow.Transparency = 0.5
+            arrow.Filled = true
+            arrow.Parent = player.Character
+        end
+    end
+end
+
+-- Função para remover as setas
+local function removeArrow(player)
+    for _, drawing in pairs(player.Character:GetChildren()) do
+        if drawing:IsA("Drawing") then
+            drawing:Remove()
+        end
+    end
+end
+
+-- Loop principal
+local function mainLoop()
+    while showESP do
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= game.Players.LocalPlayer and player.Character then
+                createESP(player)
+                createArrow(player)
+            end
+        end
+        wait(1) -- Atualiza o ESP e as setas a cada segundo
+    end
+end
+
+-- Ativar/Desativar o script
+local function toggleESP()
+    showESP = not showESP
+    if showESP then
+        mainLoop()
+    else
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= game.Players.LocalPlayer and player.Character then
+                removeESP(player)
+                removeArrow(player)
+            end
+        end
+    end
+end
+
+-- Tecla para ativar/desativar o script (por exemplo, a tecla "F")
+local userInputService = game:GetService("UserInputService")
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.F and not gameProcessed then
+        toggleESP()
+    end
+end)
+
+-- Inicia o script
+mainLoop()
